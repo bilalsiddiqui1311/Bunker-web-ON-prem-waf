@@ -1,0 +1,65 @@
+version: "3"
+
+services:
+  bunkerweb:
+    image: bunkerity/bunkerweb:1.6.14
+    ports:
+      - "80:8080/tcp"
+      - "443:8443/tcp"
+      - "443:8443/udp"
+    environment:
+      MULTISITE: "yes"
+      SERVER_NAME: "${SERVER_NAMES}"
+      AUTO_LETS_ENCRYPT: "yes"
+      USE_MODSECURITY: "yes"
+      USE_REVERSE_PROXY: "yes"
+      REVERSE_PROXY_HOST: "http://app:80"
+      REVERSE_PROXY_URL: "/"
+
+      # Let's Encrypt
+      EMAIL_LETS_ENCRYPT: "${LE_EMAIL}"
+      USE_LETS_ENCRYPT_STAGING: "${LE_STAGING}"
+
+    volumes:
+      - bw-data:/data
+      - ./bw-data/configs:/data/configs
+    restart: unless-stopped
+    networks:
+      - bw-net
+
+  bw-scheduler:
+    image: bunkerity/bunkerweb-scheduler:1.6.14
+    environment:
+      MULTISITE: "yes"
+      SERVER_NAME: "${SERVER_NAMES}"
+      AUTO_LETS_ENCRYPT: "yes"
+      USE_MODSECURITY: "yes"
+      USE_REVERSE_PROXY: "yes"
+      REVERSE_PROXY_HOST: "http://app:80"
+      REVERSE_PROXY_URL: "/"
+
+      EMAIL_LETS_ENCRYPT: "${LE_EMAIL}"
+      USE_LETS_ENCRYPT_STAGING: "${LE_STAGING}"
+
+      BUNKERWEB_INSTANCES: "bunkerweb"
+    volumes:
+      - bw-data:/data
+      - ./bw-data/configs:/data/configs
+    restart: unless-stopped
+    networks:
+      - bw-net
+
+  app:
+    image: nginx:alpine
+    volumes:
+      - ./app:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    networks:
+      - bw-net
+
+volumes:
+  bw-data:
+
+networks:
+  bw-net:
+    driver: bridge
