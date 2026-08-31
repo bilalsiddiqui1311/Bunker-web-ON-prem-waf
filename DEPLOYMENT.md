@@ -153,6 +153,9 @@ docker compose logs bw-scheduler | grep -iE "error|acme"
 ```
 
 Common causes:
+- **API whitelist not configured** - BunkerWeb API blocks scheduler communication
+  - Fix: Ensure `docker-compose.yml` has `API_WHITELIST_IP: "172.18.0.0/16"` in both bunkerweb and bw-scheduler services
+  - Error message: "IP is not in API_WHITELIST_IP"
 - DNS not propagating (wait a few minutes)
 - Email already used with Let's Encrypt (use different email)
 - Port 80 or 443 not accessible from internet
