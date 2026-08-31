@@ -32,8 +32,8 @@ LE_EMAIL=your-email@example.com
 ### 3. Set Permissions
 
 ```bash
-sudo chown -R root:101 bw-data
-sudo chmod -R 770 bw-data
+sudo chown -R 101:101 bw-data
+sudo chmod -R u=rwx,g=rwx,o= bw-data
 ```
 
 ### 4. Start Services
@@ -132,6 +132,19 @@ docker compose logs bunkerweb | grep "403"
 ```
 
 ## Troubleshooting
+
+### Permission Denied Error
+
+If you see `Permission denied: '/data/configs/http'`:
+
+```bash
+docker compose down
+sudo chown -R 101:101 bw-data
+sudo chmod -R u=rwx,g=rwx,o= bw-data
+docker compose up -d
+```
+
+The nginx user inside the container needs to own the `bw-data` directory (uid 101), not root.
 
 ### Certificate Not Issued
 
