@@ -1,0 +1,147 @@
+x-bw-api-env: &bw-api-env
+  API_WHITELIST_IP: "127.0.0.0/8 10.20.30.0/24"
+  API_HTTP_PORT: "5000"
+  API_LISTEN_IP: "0.0.0.0"
+  API_SERVER_NAME: "bwapi"
+
+x-bw-db-env: &bw-db-env
+  DATABASE_URI: "mariadb+pymysql://bunkerweb:${DB_PASSWORD}@bw-db:3306/bunkerweb"
+
+services:
+  bunkerweb:
+    image: bunkerity/bunkerweb:1.6.14
+    ports:
+      - "80:8080/tcp"
+      - "443:8443/tcp"
+      - "443:8443/udp"
+    environment:
+      <<: *bw-api-env
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://10.20.30.254:514"
+        tag: bunkerweb
+    restart: "unless-stopped"
+    networks:
+      - bw-universe
+      - bw-services
+
+  bw-scheduler:
+    image: bunkerity/bunkerweb-scheduler:1.6.14
+    depends_on:
+      - bunkerweb
+    environment:
+      <<: *bw-api-env
+      DATABASE_URI: "mariadb+pymysql://bunkerweb:${DB_PASSWORD}@bw-db:3306/bunkerweb"
+      BUNKERWEB_INSTANCES: "bunkerweb"
+      UI_HOST: "http://bw-ui:7000"
+      SERVER_NAME: "${SERVER_NAMES}"
+      MULTISITE: "yes"
+      USE_UI: "yes"
+      USE_CROWDSEC: "yes"
+      CROWDSEC_API: "http://crowdsec:8080"
+      CROWDSEC_API_KEY: "${CROWDSEC_API_KEY}"
+      CROWDSEC_MODE: "live"
+      app.localhost_USE_REVERSE_PROXY: "yes"
+      app.localhost_REVERSE_PROXY_HOST: "http://assembly-app"
+      app.localhost_REVERSE_PROXY_URL: "/"
+      app.localhost_GENERATE_SELF_SIGNED_SSL: "yes"
+      app.localhost_AUTO_REDIRECT_HTTP_TO_HTTPS: "yes"
+      admin.localhost_USE_TEMPLATE: "ui"
+      admin.localhost_USE_UI: "yes"
+      admin.localhost_USE_REVERSE_PROXY: "yes"
+      admin.localhost_REVERSE_PROXY_HOST: "http://bw-ui:7000"
+      admin.localhost_REVERSE_PROXY_URL: "/"
+      admin.localhost_GENERATE_SELF_SIGNED_SSL: "yes"
+      admin.localhost_AUTO_REDIRECT_HTTP_TO_HTTPS: "yes"
+
+    volumes:
+      - bw-storage:/data
+      - ./bw-data/configs:/data/configs
+    restart: "unless-stopped"
+    networks:
+      - bw-universe
+      - bw-db
+
+  bw-ui:
+    image: bunkerity/bunkerweb-ui:1.6.14
+    environment:
+      <<: *bw-db-env
+      ADMIN_USERNAME: "${ADMIN_USERNAME}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      OVERRIDE_ADMIN_CREDS: "yes"
+      UI_FORWARDED_ALLOW_IPS: "10.20.30.0/24"
+      UI_PROXY_ALLOW_IPS: "10.20.30.0/24"
+      LOG_TYPES: "stderr"
+      ENABLE_HEALTHCHECK: "yes"
+    volumes:
+      - bw-ui-data:/data
+    depends_on:
+      - bw-db
+      - bunkerweb
+    restart: "unless-stopped"
+    networks:
+      - bw-universe
+      - bw-db
+
+  bw-db:
+    image: mariadb:11
+    command: --max-allowed-packet=67108864
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: "bunkerweb"
+      MYSQL_USER: "bunkerweb"
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - bw-db-data:/var/lib/mysql
+    restart: "unless-stopped"
+    networks:
+      - bw-db
+
+  assembly-app:
+    build: ./app
+    restart: "unless-stopped"
+    networks:
+      - bw-services
+
+  syslog:
+    image: balabit/syslog-ng:4.10.2
+    volumes:
+      - bw-logs:/var/log
+      - ./crowdsec/syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf:ro
+    networks:
+      bw-universe:
+        ipv4_address: 10.20.30.254
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:v1.7.8
+    environment:
+      BOUNCER_KEY_bunkerweb: "${CROWDSEC_API_KEY}"
+      COLLECTIONS: "bunkerity/bunkerweb"
+    volumes:
+      - crowdsec-data:/var/lib/crowdsec/data
+      - bw-logs:/var/log:ro
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+    depends_on:
+      - syslog
+    networks:
+      - bw-universe
+
+volumes:
+  bw-storage:
+  bw-logs:
+  crowdsec-data:
+  bw-ui-data:
+  bw-db-data:
+
+networks:
+  bw-universe:
+    name: bw-universe
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.20.30.0/24
+  bw-services:
+    name: bw-services
+  bw-db:
+    name: bw-db

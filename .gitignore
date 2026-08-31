@@ -1,0 +1,6 @@
+.env
+app/node_modules/
+app/dist/
+bw-data/**/*.db
+*.log
+.DS_Store
