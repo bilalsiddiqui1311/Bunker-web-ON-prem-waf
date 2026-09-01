@@ -58,6 +58,35 @@ services:
       bunkerweb.we-are-asap.com_REVERSE_PROXY_HOST: "http://bw-ui:7000"
       bunkerweb.we-are-asap.com_REVERSE_PROXY_URL: "/"
       bunkerweb.we-are-asap.com_AUTO_LETS_ENCRYPT: "yes"
+      # AWS WAF parity rules (Pri 1, 3, 17, 21, 0/207, 101, 206, 136, 137, 209, 211, 212)
+      WHITELIST_IP: "193.186.4.116 119.155.11.236 122.161.65.162 103.84.54.52 103.55.90.231 110.93.201.66 103.102.159.17 167.86.97.134 44.195.225.114 103.102.159.19 122.161.79.104 106.219.165.65 106.219.160.94 108.218.24.37 103.209.76.35 39.37.139.90 103.83.89.126 187.77.23.102 106.219.163.108 162.120.188.247 203.215.180.120 203.130.22.162 125.209.112.96 101.53.234.82 72.255.51.87 203.130.22.160 103.84.54.48 12.202.95.197 154.208.32.114 54.166.224.59 110.93.201.77"
+      WHITELIST_RDNS: ".googlebot.com .search.msn.com .bing.com .google.com"
+      WHITELIST_USER_AGENT: "gptbot chatgpt-user perplexitybot"
+      BLACKLIST_USER_AGENT: "curl wget scrapy libwww python httpie okhttp"
+      BLACKLIST_COUNTRY: "DZ BD CN CO ET HK IR IQ RU SY VE VN AR"
+      BLACKLIST_URI: '\.php$ \.asp$ \.jsp$ \.exe$ \.dll$ \.sh$ \.cgi$'
+      BLACKLIST_COMMUNITY_LISTS: "ipsum abuse ipaddr"
+      USE_ANTIBOT: "yes"
+      ANTIBOT_ONLY_COUNTRY: "GB CA DE FR AU JP NL IT ES"
+      # Rate limiting and whitelist for alphansn.com and www.alphansn.com
+      alphansn.com_LIMIT_REQ_URL_1: "^/api/sites/[0-9]+/(rfq|contact)"
+      alphansn.com_LIMIT_REQ_RATE_1: "10/300s"
+      alphansn.com_WHITELIST_URI: "^/api/sites/[^/]+/rfq ^/api/sites/[^/]+/contact"
+      alphansn.com_LIMIT_REQ_URL_2: "^/(login|auth)"
+      alphansn.com_LIMIT_REQ_RATE_2: "50/300s"
+      alphansn.com_LIMIT_REQ_URL_3: "^/(api|search|download|products)"
+      alphansn.com_LIMIT_REQ_RATE_3: "300/300s"
+      alphansn.com_LIMIT_REQ_URL_4: "/"
+      alphansn.com_LIMIT_REQ_RATE_4: "500/300s"
+      www.alphansn.com_LIMIT_REQ_URL_1: "^/api/sites/[0-9]+/(rfq|contact)"
+      www.alphansn.com_LIMIT_REQ_RATE_1: "10/300s"
+      www.alphansn.com_WHITELIST_URI: "^/api/sites/[^/]+/rfq ^/api/sites/[^/]+/contact"
+      www.alphansn.com_LIMIT_REQ_URL_2: "^/(login|auth)"
+      www.alphansn.com_LIMIT_REQ_RATE_2: "50/300s"
+      www.alphansn.com_LIMIT_REQ_URL_3: "^/(api|search|download|products)"
+      www.alphansn.com_LIMIT_REQ_RATE_3: "300/300s"
+      www.alphansn.com_LIMIT_REQ_URL_4: "/"
+      www.alphansn.com_LIMIT_REQ_RATE_4: "500/300s"
 
     volumes:
       - bw-storage:/data
